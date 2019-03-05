@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "declaration": true,
+        "experimentalDecorators": true,
+        "lib": [
+            "dom",
+            "es2017"
+        ],
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "outDir": "./dist/node",
+        "plugins": [
+            {
+                "name": "typescript-tslint-plugin",
+                "configFile": "./tslint.json"
+            }
+        ],
+        "sourceMap": true,
+        "strict": true,
+        "target": "es2017"
+    },
+    "include": [
+        "src/**/*"
+    ]
+}
