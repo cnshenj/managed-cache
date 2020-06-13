@@ -6,6 +6,8 @@
   "browser": "dist/browser/index.js",
   "scripts": {
     "lint": "eslint src --ext ts",
+    "build": "tsc -p ./",
+    "build-browser": "tsc -p ./tsconfig.browser.json",
     "test": "jest"
   },
   "devDependencies": {
