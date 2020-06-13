@@ -1,16 +1,16 @@
 /** Contains information about a cached value. */
 export interface ICacheItem {
     /** A unique key to identify the value. */
-    key: any;
+    key: unknown;
 
     /** The value that is being cached. */
-    value: any;
+    value: unknown;
 
     /** The context of the item. */
     context?: string;
 
     /** A unique key to identify the cache policy. If omitted, the item never expires. */
-    policyKey?: any;
+    policyKey?: unknown;
 
     /** The max age of the item before it expires. If not provided, it will never expire. */
     maxAge?: number;

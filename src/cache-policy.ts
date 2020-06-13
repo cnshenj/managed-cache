@@ -4,7 +4,7 @@ export interface ICachePolicy {
      * The max age of a cache item, in milliseconds.
      * Or, a function that takes parameters and returns the max age of a cache item.
      */
-    maxAge: number | ((...parameters: any[]) => number);
+    maxAge: number | ((...parameters: unknown[]) => number);
 
     /**
      * Whether to reset the age of an item whenever it is accessed.

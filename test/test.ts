@@ -2,12 +2,12 @@ import { cache } from "../src/cache-decorator";
 import { cacheManager } from "../src/cache-manager";
 
 const testName = "foobar";
-function getMaxAge(name: string): number {
+function getMaxAge(name: unknown): number {
     return name === testName ? 100 : 150;
 }
 
 const testContext = "world";
-function getContext(name: string): string | undefined {
+function getContext(name: unknown): string | undefined {
     return name === testName ? testContext : undefined;
 }
 
@@ -98,24 +98,24 @@ test("Cached data expire according to policy", async () => {
 
     cacheManager.clear();
     let data = testObject.getData(testName, 10);
-    await wait(90);
+    await wait(80);
     let cached = testObject.getData(testName, 10);
     expect(cached).toBe(data);
 
-    // 90 + 11 = 101, greater than max age 100 for Jack
-    await wait(11);
+    // 80 + 21 = 101, greater than max age 100 for Jack
+    await wait(21);
     let newValue = testObject.getData(testName, 10);
     expect(newValue).not.toBe(data);
 
     // Different parameters which use a different policy
     const anotherName = testName + 1;
     data = testObject.getData(anotherName, 10);
-    await wait(140);
+    await wait(110);
     cached = testObject.getData(anotherName, 10);
     expect(cached).toBe(data);
 
-    // 140 + 11 = 151, greater than max age 150 for anyone that is not Jack
-    await wait(11);
+    // 110 + 41 = 151, greater than max age 150 for anyone that is not Jack
+    await wait(41);
     newValue = testObject.getData(anotherName, 10);
     expect(newValue).not.toBe(data);
 });
@@ -149,14 +149,14 @@ test("Reset sliding cache age when accessed", async () => {
     cacheManager.setCachePolicy([TestClass, methodName], { maxAge: 100, sliding: true });
 
     const data = testObject.getData(testName, 10);
-    await wait(90);
+    await wait(80);
 
     // Cache age reset to 0 when accessed
     const cached = testObject.getData(testName, 10);
     expect(cached).toBe(data);
 
-    // 90 + 90 = 180, greater than max age 100, but cache age was reset at 90, so it has not expired yet
-    await wait(90);
+    // 80 + 80 = 160, greater than max age 100, but cache age was reset at 90, so it has not expired yet
+    await wait(80);
     let newValue = testObject.getData(testName, 10);
     expect(newValue).toBe(data);
 

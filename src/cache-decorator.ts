@@ -10,7 +10,7 @@ import { ICacheOptions } from "./cache-options";
  */
 function cacheDecorator(
     options: ICacheOptions | undefined,
-    // tslint:disable-next-line: ban-types
+    // eslint-disable-next-line @typescript-eslint/ban-types
     target: Object,
     propertyName: string | symbol,
     descriptor: PropertyDescriptor): PropertyDescriptor {

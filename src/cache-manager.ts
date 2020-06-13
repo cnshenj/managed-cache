@@ -18,7 +18,7 @@ export class CacheManager {
      * @param policyKey A unique key to identify a cache policy.
      * @param policy A cache policy that is associated with the unique key.
      */
-    public setCachePolicy(policyKey: any, policy: ICachePolicy): void {
+    public setCachePolicy(policyKey: unknown, policy: ICachePolicy): void {
         this._policies[this.getHash(policyKey)] = policy;
     }
 
@@ -27,7 +27,7 @@ export class CacheManager {
      * @param key A unique key to identify a cache item.
      * @returns A cache item if it exists and has not expired; otherwise, undefined.
      */
-    public getCacheItem(key: any): ICacheItem | undefined {
+    public getCacheItem(key: unknown): ICacheItem | undefined {
         const keyHash = this.getHash(key);
         const cacheItem = this.storage.get(keyHash);
         if (!cacheItem) {
@@ -67,7 +67,7 @@ export class CacheManager {
      * @param key A unique key to identify a cache item.
      * @returns True if the cache contains an item with the specified key; otherwise, false.
      */
-    public has(key: any): boolean {
+    public has(key: unknown): boolean {
         const keyHash = this.getHash(key);
         const cacheItem = this.storage.get(keyHash);
         return !!cacheItem && !this.expired(cacheItem);
@@ -78,7 +78,7 @@ export class CacheManager {
      * @param key A unique key to identify a cache item.
      * @returns A cached value.
      */
-    public get<T>(key: any): T | undefined {
+    public get(key: unknown): unknown {
         const cacheItem = this.getCacheItem(key);
         return cacheItem ? cacheItem.value : undefined;
     }
@@ -90,7 +90,7 @@ export class CacheManager {
      * @param options Options that controls the caching behavior.
      * @param parameters Parameters that were used to get the value that will be cached (e.g. in a function call).
      */
-    public set(key: any, value: any, options?: ICacheOptions, parameters?: any[]): void {
+    public set(key: unknown, value: unknown, options?: ICacheOptions, parameters?: unknown[]): void {
         const now = new Date();
         const cacheItem: ICacheItem = {
             key,
@@ -148,7 +148,7 @@ export class CacheManager {
      * @param key A unique key to identify a cache item.
      * @returns True if an item with the specified key existed; otherwise, false.
      */
-    public remove(key: any): boolean {
+    public remove(key: unknown): boolean {
         const keyHash = this.getHash(key);
         const cacheItem = this.storage.remove(keyHash);
         if (cacheItem) {
@@ -190,13 +190,14 @@ export class CacheManager {
      * @param cacheOptions Options to control caching behavior.
      * @param getKey Optional function to get cache key from function parameters.
      */
-    // tslint:disable-next-line: ban-types
-    public wrap<T extends Function>(target: T, cacheOptions?: ICacheOptions, getKey?: (parameters: any[]) => any): T {
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    public wrap<T extends Function>(target: T, cacheOptions?: ICacheOptions, getKey?: (parameters: unknown[]) => unknown): T {
         // Save "this". In the wrapped function, "this" will be from the caller's context.
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
 
         // tslint:disable-next-line: only-arrow-functions
-        const wrapped = function (this: any, ...parameters: any[]): any {
+        const wrapped = function (this: unknown, ...parameters: unknown[]): unknown {
             const key = getKey ? getKey(parameters) : [target.name, parameters];
             const cacheItem = self.getCacheItem(key);
             if (cacheItem) {
@@ -206,18 +207,18 @@ export class CacheManager {
             // Call the wrapped function. "this" is from the caller's context (e.g. an class instance).
             const value = target.apply(this, parameters);
 
-            cacheManager.set(key, value, cacheOptions, parameters);
+            self.set(key, value, cacheOptions, parameters);
             return value;
         };
 
-        return wrapped as any;
+        return wrapped as unknown as T;
     }
 
     /**
      * Calculates the hash of a key.
      * @param key A key to calculate hash for.
      */
-    private getHash(key: any): string {
+    private getHash(key: unknown): string {
         return typeof key === "string" ? key : hash(key);
     }
 

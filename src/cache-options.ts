@@ -6,10 +6,10 @@ export interface ICacheOptions {
      * A string context, or a function that returns a string context.
      * Contexts are used to group cached data. Items with the same context can be removed together easily.
      */
-    context?: string | ((...parameters: any[]) => string | undefined);
+    context?: string | ((...parameters: unknown[]) => string | undefined);
 
     /** A key used to find cache policy. Or, a function to get a policy key. */
-    policyKey?: any;
+    policyKey?: unknown;
 
     /**
      * The cache policy to be used.
