@@ -87,10 +87,11 @@ export class CacheManager {
      * Saves a value to the cache.
      * @param key A unique key to identify a cache item.
      * @param value A value to be cached.
-     * @param options Options that controls the caching behavior.
+     * @param thisParameter The 'this' parameter used to get the value (e.g. in a function call).
      * @param parameters Parameters that were used to get the value that will be cached (e.g. in a function call).
+     * @param options Options that controls the caching behavior.
      */
-    public set(key: unknown, value: unknown, options?: ICacheOptions, parameters?: unknown[]): void {
+    public set(key: unknown, value: unknown, thisParameter?: unknown, parameters?: unknown[], options?: ICacheOptions): void {
         const now = new Date();
         const cacheItem: ICacheItem = {
             key,
@@ -105,7 +106,7 @@ export class CacheManager {
             if (context) {
                 cacheItem.context = typeof context === "string"
                     ? context
-                    : (parameters ? context(...parameters) : context());
+                    : (parameters ? context.apply(thisParameter, parameters) : context.apply(thisParameter));
             }
 
             // First, try to use the policy key to determine what policy to use
@@ -207,7 +208,7 @@ export class CacheManager {
             // Call the wrapped function. "this" is from the caller's context (e.g. an class instance).
             const value = target.apply(this, parameters);
 
-            self.set(key, value, cacheOptions, parameters);
+            self.set(key, value, this, parameters, cacheOptions);
             return value;
         };
 

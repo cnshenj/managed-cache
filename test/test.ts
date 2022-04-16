@@ -11,13 +11,25 @@ function getContext(name: unknown): string | undefined {
     return name === testName ? testContext : undefined;
 }
 
+function getThisContext(this: TestClass): string | undefined {
+    return this.source;
+}
+
 const customCache = cache({ context: getContext, policy: { maxAge: getMaxAge } });
+const thisContextCache = cache({ context: getThisContext });
 
 class TestClass {
     public category = "test";
 
+    constructor(public readonly source = "unknown") { }
+
     @customCache
     public getData(name: string, count: number): { name: string, count: number, category: string } {
+        return { name, count, category: this.category };
+    }
+
+    @thisContextCache
+    public getData2(name: string, count: number): { name: string, count: number, category: string } {
         return { name, count, category: this.category };
     }
 }
@@ -91,6 +103,21 @@ test("Set context of cached data", () => {
     cacheManager.removeContext(testContext);
     expect(cacheManager.has([TestClass, methodName, testName, 10])).toBe(false);
     expect(cacheManager.has([TestClass, methodName, anotherName, 10])).toBe(true);
+});
+
+test("Set context of cached data using 'this'", () => {
+    cacheManager.clear();
+    const myMethodName = "getData2";
+    const myContext = "my";
+    const myObject = new TestClass(myContext);
+    const anotherName = testName + 1;
+    myObject.getData2(testName, 10);
+    myObject.getData2(anotherName, 10);
+    expect(cacheManager.has([TestClass, myMethodName, testName, 10])).toBe(true);
+    expect(cacheManager.has([TestClass, myMethodName, anotherName, 10])).toBe(true);
+    cacheManager.removeContext(myContext);
+    expect(cacheManager.has([TestClass, myMethodName, testName, 10])).toBe(false);
+    expect(cacheManager.has([TestClass, myMethodName, anotherName, 10])).toBe(false);
 });
 
 test("Cached data expire according to policy", async () => {

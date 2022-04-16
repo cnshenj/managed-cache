@@ -1,6 +1,6 @@
 {
   "name": "managed-cache",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "Managed cache for expensive queries.",
   "main": "dist/node/index.js",
   "browser": "dist/browser/index.js",
