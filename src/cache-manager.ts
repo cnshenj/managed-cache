@@ -219,7 +219,8 @@ export class CacheManager {
      * @param key A key to calculate hash for.
      */
     private getHash(key: unknown): string {
-        return typeof key === "string" ? key : hash(key);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return typeof key === "string" ? key : hash(key as any);
     }
 
     /**
