@@ -15,8 +15,13 @@ function getThisContext(this: TestClass): string | undefined {
     return this.source;
 }
 
+function getExtraKeyParts(this: unknown): string {
+    return (this as TestClass).source;
+}
+
 const customCache = cache({ context: getContext, policy: { maxAge: getMaxAge } });
 const thisContextCache = cache({ context: getThisContext });
+const extraKeyPartsCache = cache({ extraKeyParts: getExtraKeyParts });
 
 class TestClass {
     public category = "test";
@@ -29,8 +34,13 @@ class TestClass {
     }
 
     @thisContextCache
-    public getData2(name: string, count: number): { name: string, count: number, category: string } {
+    public useThisContext(name: string, count: number): { name: string, count: number, category: string } {
         return { name, count, category: this.category };
+    }
+
+    @extraKeyPartsCache
+    public useExtraKeyParts(name: string, count: number): { name: string, count: number, source: string } {
+        return { name, count, source: this.source };
     }
 }
 
@@ -107,17 +117,35 @@ test("Set context of cached data", () => {
 
 test("Set context of cached data using 'this'", () => {
     cacheManager.clear();
-    const myMethodName = "getData2";
+    const myMethodName = "useThisContext";
     const myContext = "my";
     const myObject = new TestClass(myContext);
     const anotherName = testName + 1;
-    myObject.getData2(testName, 10);
-    myObject.getData2(anotherName, 10);
+    myObject.useThisContext(testName, 10);
+    myObject.useThisContext(anotherName, 10);
     expect(cacheManager.has([TestClass, myMethodName, testName, 10])).toBe(true);
     expect(cacheManager.has([TestClass, myMethodName, anotherName, 10])).toBe(true);
     cacheManager.removeContext(myContext);
     expect(cacheManager.has([TestClass, myMethodName, testName, 10])).toBe(false);
     expect(cacheManager.has([TestClass, myMethodName, anotherName, 10])).toBe(false);
+});
+
+test("Use extra key parts", () => {
+    cacheManager.clear();
+    const myMethodName = "useExtraKeyParts";
+    const foo = new TestClass("foo");
+    const bar = new TestClass("bar");
+
+    const fooData = foo.useExtraKeyParts(testName, 1);
+    expect(cacheManager.has([TestClass, myMethodName, testName, 1, "foo"])).toBe(true);
+    const barData = bar.useExtraKeyParts(testName, 1);
+    expect(cacheManager.has([TestClass, myMethodName, testName, 1, "bar"])).toBe(true);
+    expect(barData).not.toBe(fooData);
+
+    const fooCached = foo.useExtraKeyParts(testName, 1);
+    expect(fooCached).toBe(fooData);
+    const barCached = bar.useExtraKeyParts(testName, 1);
+    expect(barCached).toBe(barData);
 });
 
 test("Cached data expire according to policy", async () => {

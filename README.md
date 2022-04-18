@@ -46,6 +46,37 @@ import { cacheManager } from "managed-cache";
 cacheManager.setCachePolicy([MyClass, "getData"], { maxAge: 60000 });
 ```
 
+### Use extra key parts to help distinguish requests
+**Problem**:
+```typescript
+class C {
+    constructor(public readonly source) { }
+
+    @cache()
+    public getSource() { return this.source; }
+}
+
+const foo = new C("foo");
+const bar = new C("bar");
+let source = foo.getSource();
+// Since there is no parameter to help distinguish bar.GetSource from foo.getSource
+// The cached "foo" will be incorrectly returned
+source = bar.getSource();
+```
+
+**Solution**:
+```typescript
+const cacheWithExtraKeyParts = cache({ extraKeyParts: (this: unknown) => (this as C).source });
+
+class C {
+    // When getSource is invoked, this.source will be used as part of the key
+    // Thus, requests with different this.source (e.g. "foo" and "bar") won't be incorrectly mixed
+    @cacheWithExtraKeyParts
+    public getSource() { return this.source; }
+}
+
+```
+
 ### Group cached data by context
 Cached data that are grouped by context can be removed together. For example, when a service that process student
 records deletes a student, it can remove all cached data related to that student.

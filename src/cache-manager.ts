@@ -5,6 +5,55 @@ import { ICachePolicy } from "./cache-policy";
 import { ICacheStorage } from "./cache-storage";
 import { MemoryCache } from "./memory-cache";
 
+export interface ICacheWrapOptions extends ICacheOptions {
+    /**
+     * Add additional key parts.
+     * For example, a class method may not have enough parameters to identify invocations.
+     * class C {
+     *   constructor(public name: string) { }
+     *   @cache
+     *   public greet() { return "Hello, " + name; }
+     * }
+     * const a = new C("a");
+     * const b = new C("b");
+     * // Cached with key [typeof C, "greet"]
+     * let g = a.greet();
+     * // The cache manage will return cached "Hello, a", because the cache key is the same.
+     * g = b.greet();
+     * The problem can be solved by adding this.name as part of the key.
+     */
+    extraKeyParts?: (this: unknown, parameters?: unknown[]) => unknown;
+}
+
+function isIterable(value: unknown): value is Iterable<unknown> {
+    // Strings are technically iterable, but we treat them as whole strings, not individual characters
+    if (value === undefined || value === null || typeof value === "string") {
+        return false;
+    }
+
+    return typeof (value as { [Symbol.iterator]?: unknown })[Symbol.iterator] === "function";
+}
+
+function mergeKeyParts(key: unknown, keyParts: unknown): unknown[] {
+    return isIterable(key)
+        ? (isIterable(keyParts) ? [...key, ...keyParts] : [...key, keyParts])
+        : (isIterable(keyParts) ? [key, ...keyParts] : [key, keyParts]);
+}
+
+type Getter<T> = (...args: unknown[]) => T;
+
+function isGetter<T>(target: T | Getter<T>): target is Getter<T> {
+    return typeof target === "function";
+}
+
+function invoke<T>(target: T | Getter<T>, thisParameter: unknown, parameters?: unknown[]): T {
+    if (isGetter(target)) {
+        return parameters ? target.apply(thisParameter, parameters) : target.apply(thisParameter);
+    } else {
+        return target;
+    }
+}
+
 /** Manages a cache system and policies. */
 export class CacheManager {
     private _policies: { [hash: string]: ICachePolicy } = {};
@@ -104,9 +153,7 @@ export class CacheManager {
         if (options) {
             const { context, policyKey } = options;
             if (context) {
-                cacheItem.context = typeof context === "string"
-                    ? context
-                    : (parameters ? context.apply(thisParameter, parameters) : context.apply(thisParameter));
+                cacheItem.context = invoke(context, thisParameter, parameters);
             }
 
             // First, try to use the policy key to determine what policy to use
@@ -128,9 +175,7 @@ export class CacheManager {
                     return;
                 }
 
-                cacheItem.maxAge = typeof maxAge === "number"
-                    ? maxAge
-                    : (parameters ? maxAge(...parameters) : maxAge());
+                cacheItem.maxAge = invoke(maxAge, thisParameter, parameters);
                 cacheItem.sliding = policy.sliding;
             }
         }
@@ -192,14 +237,21 @@ export class CacheManager {
      * @param getKey Optional function to get cache key from function parameters.
      */
     // eslint-disable-next-line @typescript-eslint/ban-types
-    public wrap<T extends Function>(target: T, cacheOptions?: ICacheOptions, getKey?: (parameters: unknown[]) => unknown): T {
+    public wrap<T extends Function>(target: T, cacheOptions?: ICacheWrapOptions, getKey?: (parameters: unknown[]) => unknown): T {
         // Save "this". In the wrapped function, "this" will be from the caller's context.
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
 
+        const extraKeyParts = cacheOptions ? cacheOptions.extraKeyParts : undefined;
+
         // tslint:disable-next-line: only-arrow-functions
         const wrapped = function (this: unknown, ...parameters: unknown[]): unknown {
-            const key = getKey ? getKey(parameters) : [target.name, parameters];
+            let key = getKey ? getKey.call(this, parameters) : [target.name, parameters];
+            if (extraKeyParts) {
+                const keyParts = extraKeyParts.call(this, parameters);
+                key = mergeKeyParts(key, keyParts);
+            }
+
             const cacheItem = self.getCacheItem(key);
             if (cacheItem) {
                 return cacheItem.value;

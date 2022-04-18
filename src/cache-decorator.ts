@@ -1,5 +1,4 @@
-import { cacheManager } from "./cache-manager";
-import { ICacheOptions } from "./cache-options";
+import { cacheManager, ICacheWrapOptions } from "./cache-manager";
 
 /**
  * Decorates a class method so its result will be cached.
@@ -9,7 +8,7 @@ import { ICacheOptions } from "./cache-options";
  * @param descriptor The descriptor of the property being decorated.
  */
 function cacheDecorator(
-    options: ICacheOptions | undefined,
+    options: ICacheWrapOptions | undefined,
     // eslint-disable-next-line @typescript-eslint/ban-types
     target: Object,
     propertyName: string | symbol,
@@ -29,6 +28,6 @@ function cacheDecorator(
     return descriptor;
 }
 
-export function cache(options?: ICacheOptions): MethodDecorator {
+export function cache(options?: ICacheWrapOptions): MethodDecorator {
     return cacheDecorator.bind(undefined, options);
 }
