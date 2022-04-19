@@ -1,8 +1,14 @@
+import { v4 as uuidv4 } from "uuid";
 import { cacheManager, ICacheWrapOptions } from "./cache-manager";
+
+const typeIdSymbol = Symbol("typeId");
+
+interface WithId {
+    [typeIdSymbol]: string;
+}
 
 /**
  * Decorates a class method so its result will be cached.
- * @param policy The optional cache policy.
  * @param target The target being decorated. It should be a class instance.
  * @param propertyName The name of the property being decorated.
  * @param descriptor The descriptor of the property being decorated.
@@ -17,13 +23,21 @@ function cacheDecorator(
     // Save a copy of the method being decorated
     const method = descriptor.value;
 
+    // To avoid getting a different hash due to the constructor being modified
+    // Generate and use a UUID to identify target type
+    if (!(typeIdSymbol in target.constructor)) {
+        (target.constructor as unknown as WithId)[typeIdSymbol] = uuidv4();
+    }
+
+    const targetId = (target.constructor as unknown as WithId)[typeIdSymbol];
+
     // By default, cache policy is determined by the which method is being wrapped
     const cacheOptions = { policyKey: [target.constructor, propertyName] };
     Object.assign(cacheOptions, options);
     descriptor.value = cacheManager.wrap(
         method,
         cacheOptions,
-        parameters => [target.constructor, propertyName, ...parameters]);
+        parameters => [targetId, propertyName, ...parameters]);
 
     return descriptor;
 }
