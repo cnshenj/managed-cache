@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
 import { cacheManager, ICacheWrapOptions } from "./cache-manager";
 
-const typeIdSymbol = Symbol("typeId");
+export const typeIdSymbol = Symbol.for("managed-cache-typeId");
 
-interface WithId {
+export interface WithId {
     [typeIdSymbol]: string;
 }
 

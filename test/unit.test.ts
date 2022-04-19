@@ -1,4 +1,4 @@
-import { cache } from "../src/cache-decorator";
+import { cache, typeIdSymbol, WithId } from "../src/cache-decorator";
 import { cacheManager } from "../src/cache-manager";
 
 const testName = "foobar";
@@ -44,6 +44,8 @@ class TestClass {
     }
 }
 
+const typeId = (TestClass as unknown as WithId)[typeIdSymbol];
+
 async function wait(duration: number): Promise<void> {
     return new Promise(resolve => {
         setTimeout(() => resolve(), duration);
@@ -65,7 +67,7 @@ test("Clear cache", () => {
 test("Check existence of cached data", () => {
     cacheManager.clear();
     testObject.getData(testName, 10);
-    const exists = cacheManager.has([TestClass, methodName, testName, 10]);
+    const exists = cacheManager.has([typeId, methodName, testName, 10]);
     expect(exists).toBe(true);
 });
 
@@ -97,7 +99,7 @@ test("Remove cached data", () => {
     const data = testObject.getData(testName, 10);
     const cached = testObject.getData(testName, 10);
     expect(cached).toBe(data);
-    const success = cacheManager.remove([TestClass, methodName, testName, 10]);
+    const success = cacheManager.remove([typeId, methodName, testName, 10]);
     const newValue = testObject.getData(testName, 10);
     expect(success).toBe(true);
     expect(newValue).not.toBe(data);
@@ -108,11 +110,11 @@ test("Set context of cached data", () => {
     const anotherName = testName + 1;
     testObject.getData(testName, 10);
     testObject.getData(anotherName, 10);
-    expect(cacheManager.has([TestClass, methodName, testName, 10])).toBe(true);
-    expect(cacheManager.has([TestClass, methodName, anotherName, 10])).toBe(true);
+    expect(cacheManager.has([typeId, methodName, testName, 10])).toBe(true);
+    expect(cacheManager.has([typeId, methodName, anotherName, 10])).toBe(true);
     cacheManager.removeContext(testContext);
-    expect(cacheManager.has([TestClass, methodName, testName, 10])).toBe(false);
-    expect(cacheManager.has([TestClass, methodName, anotherName, 10])).toBe(true);
+    expect(cacheManager.has([typeId, methodName, testName, 10])).toBe(false);
+    expect(cacheManager.has([typeId, methodName, anotherName, 10])).toBe(true);
 });
 
 test("Set context of cached data using 'this'", () => {
@@ -123,11 +125,11 @@ test("Set context of cached data using 'this'", () => {
     const anotherName = testName + 1;
     myObject.useThisContext(testName, 10);
     myObject.useThisContext(anotherName, 10);
-    expect(cacheManager.has([TestClass, myMethodName, testName, 10])).toBe(true);
-    expect(cacheManager.has([TestClass, myMethodName, anotherName, 10])).toBe(true);
+    expect(cacheManager.has([typeId, myMethodName, testName, 10])).toBe(true);
+    expect(cacheManager.has([typeId, myMethodName, anotherName, 10])).toBe(true);
     cacheManager.removeContext(myContext);
-    expect(cacheManager.has([TestClass, myMethodName, testName, 10])).toBe(false);
-    expect(cacheManager.has([TestClass, myMethodName, anotherName, 10])).toBe(false);
+    expect(cacheManager.has([typeId, myMethodName, testName, 10])).toBe(false);
+    expect(cacheManager.has([typeId, myMethodName, anotherName, 10])).toBe(false);
 });
 
 test("Use extra key parts", () => {
@@ -137,15 +139,27 @@ test("Use extra key parts", () => {
     const bar = new TestClass("bar");
 
     const fooData = foo.useExtraKeyParts(testName, 1);
-    expect(cacheManager.has([TestClass, myMethodName, testName, 1, "foo"])).toBe(true);
+    expect(cacheManager.has([typeId, myMethodName, testName, 1, "foo"])).toBe(true);
     const barData = bar.useExtraKeyParts(testName, 1);
-    expect(cacheManager.has([TestClass, myMethodName, testName, 1, "bar"])).toBe(true);
+    expect(cacheManager.has([typeId, myMethodName, testName, 1, "bar"])).toBe(true);
     expect(barData).not.toBe(fooData);
 
     const fooCached = foo.useExtraKeyParts(testName, 1);
     expect(fooCached).toBe(fooData);
     const barCached = bar.useExtraKeyParts(testName, 1);
     expect(barCached).toBe(barData);
+});
+
+test("Cache key is stable even class is modified", () => {
+    cacheManager.clear();
+    const data = testObject.getData(testName, 10);
+    const exists = cacheManager.has([typeId, methodName, testName, 10]);
+    expect(exists).toBe(true);
+
+    // Type modified, but the cache key remains the same
+    (TestClass as unknown as { [key: string]: string })["foobar"] = "Hello, world!";
+    const cached = testObject.getData(testName, 10);
+    expect(cached).toBe(data);
 });
 
 test("Cached data expire according to policy", async () => {
