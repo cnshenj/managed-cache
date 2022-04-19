@@ -65,208 +65,216 @@ async function wait(duration: number): Promise<void> {
 const methodName = "getData";
 const testObject = new TestClass();
 
-test("Clear cache", () => {
-    const data = testObject.getData(testName, 10);
-    const cached = testObject.getData(testName, 10);
-    expect(cached).toBe(data);
-    cacheManager.clear();
-    const newValue = testObject.getData(testName, 10);
-    expect(newValue).not.toBe(data);
-});
+describe("managed-cache", () => {
+    test("Clear cache", () => {
+        cacheManager.set("foobar", "Hello, world!");
+        expect(cacheManager.count()).toBeGreaterThan(0);
+        cacheManager.clear();
+        expect(cacheManager.count()).toEqual(0);
+    });
 
-test("Check existence of cached data", () => {
-    cacheManager.clear();
-    testObject.getData(testName, 10);
-    const exists = cacheManager.has([typeId, methodName, testName, 10]);
-    expect(exists).toBe(true);
-});
+    test("Check existence of cached data", () => {
+        cacheManager.clear();
+        testObject.getData(testName, 10);
+        const exists = cacheManager.has([typeId, methodName, testName, 10]);
+        expect(exists).toBe(true);
+    });
 
-test("Get cached data", () => {
-    cacheManager.clear();
-    const data = testObject.getData(testName, 10);
-    const cached = testObject.getData(testName, 10);
-    expect(cached).toBe(data);
-    expect(cached).toEqual({ name: testName, count: 10, category: testObject.category });
-});
+    test("Get cached data directly", () => {
+        cacheManager.clear();
+        const data = testObject.getData(testName, 10);
+        const cached = cacheManager.get([typeId, methodName, testName, 10]);
+        expect(cached).toBe(data);
+        expect(cached).toEqual({ name: testName, count: 10, category: testObject.category });
+    });
 
-test("Cache shared by 2 instances", () => {
-    cacheManager.clear();
-    const data = testObject.getData(testName, 10);
-    const another = new TestClass();
-    const cached = another.getData(testName, 10);
-    expect(cached).toBe(data);
-});
+    test("Get cached data via decorator", () => {
+        cacheManager.clear();
+        const data = testObject.getData(testName, 10);
+        const cached = testObject.getData(testName, 10);
+        expect(cached).toBe(data);
+        expect(cached).toEqual({ name: testName, count: 10, category: testObject.category });
+    });
 
-test("Different parameters cached separately", () => {
-    cacheManager.clear();
-    const x = testObject.getData(testName, 10);
-    const y = testObject.getData(testName + 1, 20);
-    expect(y).not.toEqual(x);
-});
+    test("Cache shared by 2 instances", () => {
+        cacheManager.clear();
+        const data = testObject.getData(testName, 10);
+        const another = new TestClass();
+        const cached = another.getData(testName, 10);
+        expect(cached).toBe(data);
+    });
 
-test("Remove cached data", () => {
-    cacheManager.clear();
-    const data = testObject.getData(testName, 10);
-    const cached = testObject.getData(testName, 10);
-    expect(cached).toBe(data);
-    const success = cacheManager.remove([typeId, methodName, testName, 10]);
-    const newValue = testObject.getData(testName, 10);
-    expect(success).toBe(true);
-    expect(newValue).not.toBe(data);
-});
+    test("Different parameters cached separately", () => {
+        cacheManager.clear();
+        const x = testObject.getData(testName, 10);
+        const y = testObject.getData(testName + 1, 20);
+        expect(y).not.toEqual(x);
+    });
 
-test("Set context of cached data", () => {
-    cacheManager.clear();
-    const anotherName = testName + 1;
-    testObject.getData(testName, 10);
-    testObject.getData(anotherName, 10);
-    expect(cacheManager.has([typeId, methodName, testName, 10])).toBe(true);
-    expect(cacheManager.has([typeId, methodName, anotherName, 10])).toBe(true);
-    cacheManager.removeContext(testContext);
-    expect(cacheManager.has([typeId, methodName, testName, 10])).toBe(false);
-    expect(cacheManager.has([typeId, methodName, anotherName, 10])).toBe(true);
-});
+    test("Remove cached data", () => {
+        cacheManager.clear();
+        const data = testObject.getData(testName, 10);
+        const cached = testObject.getData(testName, 10);
+        expect(cached).toBe(data);
+        const success = cacheManager.remove([typeId, methodName, testName, 10]);
+        const newValue = testObject.getData(testName, 10);
+        expect(success).toBe(true);
+        expect(newValue).not.toBe(data);
+    });
 
-test("Set context of cached data using 'this'", () => {
-    cacheManager.clear();
-    const myMethodName = "useThisContext";
-    const myContext = "my";
-    const myObject = new TestClass(myContext);
-    const anotherName = testName + 1;
-    myObject.useThisContext(testName, 10);
-    myObject.useThisContext(anotherName, 10);
-    expect(cacheManager.has([typeId, myMethodName, testName, 10])).toBe(true);
-    expect(cacheManager.has([typeId, myMethodName, anotherName, 10])).toBe(true);
-    cacheManager.removeContext(myContext);
-    expect(cacheManager.has([typeId, myMethodName, testName, 10])).toBe(false);
-    expect(cacheManager.has([typeId, myMethodName, anotherName, 10])).toBe(false);
-});
+    test("Set context of cached data", () => {
+        cacheManager.clear();
+        const anotherName = testName + 1;
+        testObject.getData(testName, 10);
+        testObject.getData(anotherName, 10);
+        expect(cacheManager.has([typeId, methodName, testName, 10])).toBe(true);
+        expect(cacheManager.has([typeId, methodName, anotherName, 10])).toBe(true);
+        cacheManager.removeContext(testContext);
+        expect(cacheManager.has([typeId, methodName, testName, 10])).toBe(false);
+        expect(cacheManager.has([typeId, methodName, anotherName, 10])).toBe(true);
+    });
 
-test("Use extra key parts", () => {
-    cacheManager.clear();
-    const myMethodName = "useExtraKeyParts";
-    const foo = new TestClass("foo");
-    const bar = new TestClass("bar");
+    test("Set context of cached data using 'this'", () => {
+        cacheManager.clear();
+        const myMethodName = "useThisContext";
+        const myContext = "my";
+        const myObject = new TestClass(myContext);
+        const anotherName = testName + 1;
+        myObject.useThisContext(testName, 10);
+        myObject.useThisContext(anotherName, 10);
+        expect(cacheManager.has([typeId, myMethodName, testName, 10])).toBe(true);
+        expect(cacheManager.has([typeId, myMethodName, anotherName, 10])).toBe(true);
+        cacheManager.removeContext(myContext);
+        expect(cacheManager.has([typeId, myMethodName, testName, 10])).toBe(false);
+        expect(cacheManager.has([typeId, myMethodName, anotherName, 10])).toBe(false);
+    });
 
-    const fooData = foo.useExtraKeyParts(testName, 1);
-    expect(cacheManager.has([typeId, myMethodName, testName, 1, "foo"])).toBe(true);
-    const barData = bar.useExtraKeyParts(testName, 1);
-    expect(cacheManager.has([typeId, myMethodName, testName, 1, "bar"])).toBe(true);
-    expect(barData).not.toBe(fooData);
+    test("Use extra key parts", () => {
+        cacheManager.clear();
+        const myMethodName = "useExtraKeyParts";
+        const foo = new TestClass("foo");
+        const bar = new TestClass("bar");
 
-    const fooCached = foo.useExtraKeyParts(testName, 1);
-    expect(fooCached).toBe(fooData);
-    const barCached = bar.useExtraKeyParts(testName, 1);
-    expect(barCached).toBe(barData);
-});
+        const fooData = foo.useExtraKeyParts(testName, 1);
+        expect(cacheManager.has([typeId, myMethodName, testName, 1, "foo"])).toBe(true);
+        const barData = bar.useExtraKeyParts(testName, 1);
+        expect(cacheManager.has([typeId, myMethodName, testName, 1, "bar"])).toBe(true);
+        expect(barData).not.toBe(fooData);
 
-test("Cache key is stable even class is modified", () => {
-    cacheManager.clear();
-    const data = testObject.getData(testName, 10);
-    const exists = cacheManager.has([typeId, methodName, testName, 10]);
-    expect(exists).toBe(true);
+        const fooCached = foo.useExtraKeyParts(testName, 1);
+        expect(fooCached).toBe(fooData);
+        const barCached = bar.useExtraKeyParts(testName, 1);
+        expect(barCached).toBe(barData);
+    });
 
-    // Type modified, but the cache key remains the same
-    (TestClass as unknown as { [key: string]: string })["foobar"] = "Hello, world!";
-    const cached = testObject.getData(testName, 10);
-    expect(cached).toBe(data);
-});
+    test("Cache key is stable even class is modified", () => {
+        cacheManager.clear();
+        const data = testObject.getData(testName, 10);
+        const exists = cacheManager.has([typeId, methodName, testName, 10]);
+        expect(exists).toBe(true);
 
-test("Transform parameters before calculating cache key", () => {
-    cacheManager.clear();
-    const myMethodName = "transformParameters";
-    const data = testObject.transformParameters(testName, 1);
+        // Type modified, but the cache key remains the same
+        (TestClass as unknown as { [key: string]: string })["foobar"] = "Hello, world!";
+        const cached = testObject.getData(testName, 10);
+        expect(cached).toBe(data);
+    });
 
-    // Last parameter is ignored by transformParameters so it doesn't matter
-    const exists = cacheManager.has([typeId, myMethodName, testName]);
-    expect(exists).toBe(true);
+    test("Transform parameters before calculating cache key", () => {
+        cacheManager.clear();
+        const myMethodName = "transformParameters";
+        const data = testObject.transformParameters(testName, 1);
 
-    const cached = testObject.transformParameters(testName, 2);
-    expect(cached).toBe(data);
-});
+        // Last parameter is ignored by transformParameters so it doesn't matter
+        const exists = cacheManager.has([typeId, myMethodName, testName]);
+        expect(exists).toBe(true);
 
-test("Cached data expire according to policy", async () => {
-    expect.assertions(4);
+        const cached = testObject.transformParameters(testName, 2);
+        expect(cached).toBe(data);
+    });
 
-    cacheManager.clear();
-    let data = testObject.getData(testName, 10);
-    await wait(80);
-    let cached = testObject.getData(testName, 10);
-    expect(cached).toBe(data);
+    test("Cached data expire according to policy", async () => {
+        expect.assertions(4);
 
-    // 80 + 21 = 101, greater than max age 100 for Jack
-    await wait(21);
-    let newValue = testObject.getData(testName, 10);
-    expect(newValue).not.toBe(data);
+        cacheManager.clear();
+        let data = testObject.getData(testName, 10);
+        await wait(80);
+        let cached = testObject.getData(testName, 10);
+        expect(cached).toBe(data);
 
-    // Different parameters which use a different policy
-    const anotherName = testName + 1;
-    data = testObject.getData(anotherName, 10);
-    await wait(110);
-    cached = testObject.getData(anotherName, 10);
-    expect(cached).toBe(data);
+        // 80 + 21 = 101, greater than max age 100 for Jack
+        await wait(21);
+        let newValue = testObject.getData(testName, 10);
+        expect(newValue).not.toBe(data);
 
-    // 110 + 41 = 151, greater than max age 150 for anyone that is not Jack
-    await wait(41);
-    newValue = testObject.getData(anotherName, 10);
-    expect(newValue).not.toBe(data);
-});
+        // Different parameters which use a different policy
+        const anotherName = testName + 1;
+        data = testObject.getData(anotherName, 10);
+        await wait(110);
+        cached = testObject.getData(anotherName, 10);
+        expect(cached).toBe(data);
 
-test("Cached data expire according to overridden policy", async () => {
-    expect.assertions(3);
+        // 110 + 41 = 151, greater than max age 150 for anyone that is not Jack
+        await wait(41);
+        newValue = testObject.getData(anotherName, 10);
+        expect(newValue).not.toBe(data);
+    });
 
-    cacheManager.clear();
-    cacheManager.setCachePolicy([TestClass, methodName], { maxAge: 200 });
+    test("Cached data expire according to overridden policy", async () => {
+        expect.assertions(3);
 
-    const data = testObject.getData(testName, 10);
-    await wait(90);
-    const cached = testObject.getData(testName, 10);
-    expect(cached).toBe(data);
+        cacheManager.clear();
+        cacheManager.setCachePolicy([TestClass, methodName], { maxAge: 200 });
 
-    // 90 + 11 = 101, greater than old max age 100, but less than new max age 200
-    await wait(11);
-    let newValue = testObject.getData(testName, 10);
-    expect(newValue).toBe(data);
+        const data = testObject.getData(testName, 10);
+        await wait(90);
+        const cached = testObject.getData(testName, 10);
+        expect(cached).toBe(data);
 
-    // 101 + 100 = 201, greater than new max age 200
-    await wait(100);
-    newValue = testObject.getData(testName, 10);
-    expect(newValue).not.toBe(data);
-});
+        // 90 + 11 = 101, greater than old max age 100, but less than new max age 200
+        await wait(11);
+        let newValue = testObject.getData(testName, 10);
+        expect(newValue).toBe(data);
 
-test("Reset sliding cache age when accessed", async () => {
-    expect.assertions(3);
+        // 101 + 100 = 201, greater than new max age 200
+        await wait(100);
+        newValue = testObject.getData(testName, 10);
+        expect(newValue).not.toBe(data);
+    });
 
-    cacheManager.clear();
-    cacheManager.setCachePolicy([TestClass, methodName], { maxAge: 100, sliding: true });
+    test("Reset sliding cache age when accessed", async () => {
+        expect.assertions(3);
 
-    const data = testObject.getData(testName, 10);
-    await wait(80);
+        cacheManager.clear();
+        cacheManager.setCachePolicy([TestClass, methodName], { maxAge: 100, sliding: true });
 
-    // Cache age reset to 0 when accessed
-    const cached = testObject.getData(testName, 10);
-    expect(cached).toBe(data);
+        const data = testObject.getData(testName, 10);
+        await wait(80);
 
-    // 80 + 80 = 160, greater than max age 100, but cache age was reset at 90, so it has not expired yet
-    await wait(80);
-    let newValue = testObject.getData(testName, 10);
-    expect(newValue).toBe(data);
+        // Cache age reset to 0 when accessed
+        const cached = testObject.getData(testName, 10);
+        expect(cached).toBe(data);
 
-    // Cache age was reset to 0 again due to last access, wait another 101 ms for it to expire
-    await wait(101);
-    newValue = testObject.getData(testName, 10);
-    expect(newValue).not.toBe(data);
-});
+        // 80 + 80 = 160, greater than max age 100, but cache age was reset at 90, so it has not expired yet
+        await wait(80);
+        let newValue = testObject.getData(testName, 10);
+        expect(newValue).toBe(data);
 
-function getData(name: string, count: number): { name: string, count: number } {
-    return { name, count };
-}
+        // Cache age was reset to 0 again due to last access, wait another 101 ms for it to expire
+        await wait(101);
+        newValue = testObject.getData(testName, 10);
+        expect(newValue).not.toBe(data);
+    });
 
-test("Wrap a function", async () => {
-    const wrapped = cacheManager.wrap(getData);
-    const data = wrapped(testName, 10);
-    const cached = wrapped(testName, 10);
-    expect(cached).toBe(data);
-    const another = wrapped(testName + 1, 10);
-    expect(another).not.toEqual(data);
+    function getData(name: string, count: number): { name: string, count: number } {
+        return { name, count };
+    }
+
+    test("Wrap a function", async () => {
+        const wrapped = cacheManager.wrap(getData);
+        const data = wrapped(testName, 10);
+        const cached = wrapped(testName, 10);
+        expect(cached).toBe(data);
+        const another = wrapped(testName + 1, 10);
+        expect(another).not.toEqual(data);
+    });
 });

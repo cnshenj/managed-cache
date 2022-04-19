@@ -3,6 +3,7 @@ import { ICacheItem } from "./cache-item";
 import { ICacheOptions } from "./cache-options";
 import { ICachePolicy } from "./cache-policy";
 import { ICacheStorage } from "./cache-storage";
+import { expired } from "./utils";
 import { MemoryCache } from "./memory-cache";
 
 export interface ICacheWrapOptions extends ICacheOptions {
@@ -51,7 +52,7 @@ function isGetter<T>(target: T | Getter<T>): target is Getter<T> {
     return typeof target === "function";
 }
 
-function invoke<T>(target: T | Getter<T>, thisParameter: unknown, parameters?: unknown[]): T {
+function use<T>(target: T | Getter<T>, thisParameter: unknown, parameters?: unknown[]): T {
     if (isGetter(target)) {
         return parameters ? target.apply(thisParameter, parameters) : target.apply(thisParameter);
     } else {
@@ -89,7 +90,7 @@ export class CacheManager {
         }
 
         const now = new Date();
-        if (this.expired(cacheItem, now)) {
+        if (expired(cacheItem, now)) {
             this.storage.remove(keyHash);
             return undefined;
         }
@@ -124,7 +125,7 @@ export class CacheManager {
     public has(key: unknown): boolean {
         const keyHash = this.getHash(key);
         const cacheItem = this.storage.get(keyHash);
-        return !!cacheItem && !this.expired(cacheItem);
+        return !!cacheItem && !expired(cacheItem);
     }
 
     /**
@@ -158,7 +159,7 @@ export class CacheManager {
         if (options) {
             const { context, policyKey } = options;
             if (context) {
-                cacheItem.context = invoke(context, thisParameter, parameters);
+                cacheItem.context = use(context, thisParameter, parameters);
             }
 
             // First, try to use the policy key to determine what policy to use
@@ -180,7 +181,7 @@ export class CacheManager {
                     return;
                 }
 
-                cacheItem.maxAge = invoke(maxAge, thisParameter, parameters);
+                cacheItem.maxAge = use(maxAge, thisParameter, parameters);
                 cacheItem.sliding = policy.sliding;
             }
         }
@@ -225,6 +226,13 @@ export class CacheManager {
 
             delete this._contexts[context];
         }
+    }
+
+    /**
+     * Counts the number of valid (not expired) cache items.
+     */
+    public count(): number {
+        return this.storage.count();
     }
 
     /**
@@ -280,22 +288,6 @@ export class CacheManager {
     private getHash(key: unknown): string {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return typeof key === "string" ? key : hash(key as any);
-    }
-
-    /**
-     * Determines whether a cache item has expired.
-     * @param cacheItem The cache item to check.
-     * @param time The time used to calculate the cache item's age.
-     * @returns True if the cache item has expired; otherwise, false.
-     */
-    private expired(cacheItem: ICacheItem, time?: Date): boolean {
-        if (!cacheItem.maxAge) {
-            return false;
-        }
-
-        const start = cacheItem.sliding ? cacheItem.accessed : cacheItem.created;
-        const age = (time || new Date()).valueOf() - start.valueOf();
-        return age > cacheItem.maxAge;
     }
 }
 

@@ -1,5 +1,6 @@
 import { ICacheItem } from "./cache-item";
 import { ICacheStorage } from "./cache-storage";
+import { expired } from "./utils";
 
 /** A cache manager which uses memory as storage. */
 export class MemoryCache implements ICacheStorage {
@@ -30,6 +31,11 @@ export class MemoryCache implements ICacheStorage {
 
         delete this._cache[hash];
         return item;
+    }
+
+    /** @inheritdoc */
+    public count(): number {
+        return Object.keys(this._cache).filter(key => !expired(this._cache[key])).length;
     }
 
     /** @inheritdoc */

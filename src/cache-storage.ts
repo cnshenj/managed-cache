@@ -4,14 +4,14 @@ import { ICacheItem } from "./cache-item";
 export interface ICacheStorage {
     /**
      * Gets an item from the cache.
-     * @param key A unique hash to identify a cache item.
+     * @param hash A unique hash to identify a cache item.
      * @returns A cache item if it exists; otherwise, undefined.
      */
     get(hash: string): ICacheItem | undefined;
 
     /**
      * Saves an item to the cache.
-     * @param A unique hash to identify a cache item.
+     * @param hash unique hash to identify a cache item.
      * @param cacheItem An item to be saved to the cache.
      */
     set(hash: string, cacheItem: ICacheItem): void;
@@ -25,10 +25,15 @@ export interface ICacheStorage {
 
     /**
      * Removes an item from the cache.
-     * @param key A unique hash to identify a cache item.
+     * @param hash A unique hash to identify a cache item.
      * @returns True if an item with the specified hash existed and was removed; otherwise, false.
      */
     remove(hash: string): ICacheItem | undefined;
+
+    /**
+     * Counts the number of valid (not expired) cache items.
+     */
+    count(): number
 
     /**
      * Clears the cache, removes all items.
