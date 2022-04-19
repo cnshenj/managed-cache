@@ -19,9 +19,14 @@ function getExtraKeyParts(this: unknown): string {
     return (this as TestClass).source;
 }
 
+function transformParameters(parameters: unknown[]): unknown[] {
+    return parameters.length > 0 ? [parameters[0]] : [];
+}
+
 const customCache = cache({ context: getContext, policy: { maxAge: getMaxAge } });
 const thisContextCache = cache({ context: getThisContext });
 const extraKeyPartsCache = cache({ extraKeyParts: getExtraKeyParts });
+const transformParametersCache = cache({ transformParameters });
 
 class TestClass {
     public category = "test";
@@ -40,6 +45,11 @@ class TestClass {
 
     @extraKeyPartsCache
     public useExtraKeyParts(name: string, count: number): { name: string, count: number, source: string } {
+        return { name, count, source: this.source };
+    }
+
+    @transformParametersCache
+    public transformParameters(name: string, count: number): { name: string, count: number, source: string } {
         return { name, count, source: this.source };
     }
 }
@@ -159,6 +169,19 @@ test("Cache key is stable even class is modified", () => {
     // Type modified, but the cache key remains the same
     (TestClass as unknown as { [key: string]: string })["foobar"] = "Hello, world!";
     const cached = testObject.getData(testName, 10);
+    expect(cached).toBe(data);
+});
+
+test("Transform parameters before calculating cache key", () => {
+    cacheManager.clear();
+    const myMethodName = "transformParameters";
+    const data = testObject.transformParameters(testName, 1);
+
+    // Last parameter is ignored by transformParameters so it doesn't matter
+    const exists = cacheManager.has([typeId, myMethodName, testName]);
+    expect(exists).toBe(true);
+
+    const cached = testObject.transformParameters(testName, 2);
     expect(cached).toBe(data);
 });
 

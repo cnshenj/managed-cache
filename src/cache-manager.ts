@@ -23,6 +23,11 @@ export interface ICacheWrapOptions extends ICacheOptions {
      * The problem can be solved by adding this.name as part of the key.
      */
     extraKeyParts?: (this: unknown, parameters?: unknown[]) => unknown;
+
+    /**
+     * Optional callback to transform parameters so they are suitable as cache keys.
+     */
+    transformParameters?: (parameters: unknown[]) => unknown[];
 }
 
 function isIterable(value: unknown): value is Iterable<unknown> {
@@ -242,11 +247,12 @@ export class CacheManager {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
 
-        const extraKeyParts = cacheOptions ? cacheOptions.extraKeyParts : undefined;
+        const { extraKeyParts, transformParameters } = cacheOptions ?? {};
 
         // tslint:disable-next-line: only-arrow-functions
         const wrapped = function (this: unknown, ...parameters: unknown[]): unknown {
-            let key = getKey ? getKey.call(this, parameters) : [target.name, parameters];
+            const keyParameters = transformParameters ? transformParameters(parameters) : parameters;
+            let key = getKey ? getKey.call(this, keyParameters) : [target.name, ...keyParameters];
             if (extraKeyParts) {
                 const keyParts = extraKeyParts.call(this, parameters);
                 key = mergeKeyParts(key, keyParts);
