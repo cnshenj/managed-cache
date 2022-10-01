@@ -1,19 +1,43 @@
 {
-    "compilerOptions": {
-        "declaration": true,
-        "experimentalDecorators": true,
-        "lib": [
-            "DOM",
-            "ES2017"
-        ],
-        "module": "CommonJS",
-        "moduleResolution": "Node",
-        "outDir": "./dist/node",
-        "sourceMap": true,
-        "strict": true,
-        "target": "ES2017"
-    },
-    "include": [
-        "src/**/*"
-    ]
+  "compilerOptions": {
+    // Type Checking
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+
+    // Modules
+    // "baseUrl": "./",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+
+    // Emit
+    "declaration": true,
+    "declarationMap": true,
+    "importHelpers": true,
+    // "outDir": "./dist",
+    "outDir": "./dist/node",
+    "removeComments": true,
+    "sourceMap": true,
+
+    // Interop Constraints
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    
+    // Language and Environment
+    "experimentalDecorators": true,
+    // "lib": ["ES2017"],
+    "target": "ES2017",
+
+    // Completeness
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*"
+  ]
 }
